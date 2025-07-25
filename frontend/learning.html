@@ -809,45 +809,67 @@ ${template.options}
         }
 
         async function getAIResponse(prompt) {
-            const response = await fetch('/api/oneshot', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    prompt: prompt,
-                    temperature: 0.7,
-                    maxTokens: 1000
-                })
-            });
+            try {
+                const response = await fetch('/api/oneshot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        prompt: prompt,
+                        temperature: 0.7,
+                        maxTokens: 1000
+                    })
+                });
 
-            if (!response.ok) {
-                throw new Error('AI 응답 생성에 실패했습니다.');
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.detail || `HTTP ${response.status}: AI 응답 생성에 실패했습니다.`);
+                }
+
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'AI 응답 생성에 실패했습니다.');
+                }
+                
+                return data.response;
+            } catch (error) {
+                console.error('AI Response Error:', error);
+                throw error;
             }
-
-            const data = await response.json();
-            return data.response;
         }
 
         async function evaluatePrompt(prompt) {
-            const previousPrompt = chatHistory.length > 0 ? 
-                chatHistory[chatHistory.length - 1].prompt : null;
+            try {
+                const previousPrompt = chatHistory.length > 0 ? 
+                    chatHistory[chatHistory.length - 1].prompt : null;
 
-            const response = await fetch('/api/evaluate-prompt', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    currentPrompt: prompt,
-                    learningObjective: learningObjective,
-                    previousPrompt: previousPrompt,
-                    settings: settings
-                })
-            });
+                const response = await fetch('/api/evaluate-prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        currentPrompt: prompt,
+                        learningObjective: learningObjective,
+                        previousPrompt: previousPrompt,
+                        settings: settings
+                    })
+                });
 
-            if (!response.ok) {
-                throw new Error('프롬프트 평가에 실패했습니다.');
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.detail || `HTTP ${response.status}: 프롬프트 평가에 실패했습니다.`);
+                }
+
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || '프롬프트 평가에 실패했습니다.');
+                }
+                
+                return data.evaluation;
+            } catch (error) {
+                console.error('Evaluation Error:', error);
+                throw error;
             }
-
-            const data = await response.json();
-            return data.evaluation;
         }
 
 
