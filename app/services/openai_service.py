@@ -23,7 +23,17 @@ class OpenAIService:
     def generate_oneshot(self, prompt: str, model: str = "gpt-4o-mini", 
                               temperature: float = 0.7, max_tokens: int = 1000):
         """One-shot LLM 응답 생성"""
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        logger.info(f"OneShot 생성 시작 - model: {model}, prompt 길이: {len(prompt)}")
+        
         try:
+            # OpenAI API 키 확인
+            if not hasattr(self, 'client') or self.client is None:
+                raise ValueError("OpenAI client가 초기화되지 않았습니다.")
+            
+            logger.info("OpenAI API 호출 시작")
             completion = self.client.chat.completions.create(
                 model=model,
                 messages=[{"role": "user", "content": prompt}],
@@ -31,17 +41,42 @@ class OpenAIService:
                 max_tokens=max_tokens
             )
             
+            if not completion.choices or len(completion.choices) == 0:
+                raise ValueError("OpenAI API에서 응답을 받지 못했습니다.")
+            
+            response_content = completion.choices[0].message.content
+            if not response_content:
+                raise ValueError("OpenAI API에서 빈 응답을 반환했습니다.")
+            
+            logger.info(f"OpenAI API 호출 성공 - 응답 길이: {len(response_content)}")
+            
             return {
                 "success": True,
-                "response": completion.choices[0].message.content,
+                "response": response_content,
                 "usage": completion.usage.model_dump() if completion.usage else None,
                 "model": model,
                 "timestamp": datetime.now().isoformat()
             }
+            
         except Exception as e:
+            logger.error(f"OneShot 생성 오류: {str(e)}", exc_info=True)
+            
+            # 더 구체적인 오류 메시지 제공
+            error_message = str(e)
+            if "api_key" in error_message.lower():
+                error_message = "OpenAI API 키가 올바르지 않습니다."
+            elif "quota" in error_message.lower() or "billing" in error_message.lower():
+                error_message = "OpenAI API 사용량 한도에 도달했습니다."
+            elif "rate_limit" in error_message.lower():
+                error_message = "OpenAI API 요청 한도에 도달했습니다. 잠시 후 다시 시도해주세요."
+            elif "model" in error_message.lower():
+                error_message = f"모델 '{model}'을 사용할 수 없습니다."
+            
             return {
                 "success": False,
-                "error": str(e)
+                "error": error_message,
+                "original_error": str(e),
+                "timestamp": datetime.now().isoformat()
             }
     
     def generate_ideal_prompt(self, learning_objective: str, settings: dict):
