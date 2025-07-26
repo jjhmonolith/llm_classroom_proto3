@@ -10,8 +10,8 @@ WorkingDirectory=/home/ubuntu/llm_classroom_proto3
 Environment=PATH=/home/ubuntu/llm_classroom_proto3/venv/bin
 Environment=ENV=production
 Environment=PORT=8080
-EnvironmentFile=/home/ubuntu/llm_classroom_proto3/.env
-ExecStart=/home/ubuntu/llm_classroom_proto3/venv/bin/gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8080
+EnvironmentFile=-/home/ubuntu/llm_classroom_proto3/.env
+ExecStart=/home/ubuntu/llm_classroom_proto3/venv/bin/gunicorn main:app -w 2 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8080 --timeout 120
 ExecReload=/bin/kill -s HUP $MAINPID
 Restart=always
 RestartSec=5
@@ -19,4 +19,4 @@ StandardOutput=journal
 StandardError=journal
 
 [Install]
-WantedBy=multi-user.target
+Wantedby=multi-user.target
